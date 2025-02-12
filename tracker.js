@@ -1,5 +1,6 @@
 class AttributionTracker {
     constructor(config = {}) {
+        console.debug('AttributionTracker: constructor start', config);
         this.config = {
             cookieDuration: config.cookieDuration || 30, // days
             useSessionStorage: config.useSessionStorage || false,
@@ -21,68 +22,67 @@ class AttributionTracker {
         };
 
         this.initialize();
+        console.debug('AttributionTracker: constructor end');
     }
 
     initialize() {
-        // Check if we have user consent for cookies
+        console.debug('AttributionTracker: initialize start');
         const hasConsent = this.checkCookieConsent();
-        
-        // Get current URL parameters and referrer
         const currentData = this.captureCurrentData();
 
-        // If we have data to store
         if (Object.keys(currentData).length > 0) {
-            // Store based on user preferences and consent
+            // Get existing data first
+            const existingData = this.getStoredData() || {};
+            // Merge current data, keeping existing values
+            const mergedData = { ...currentData, ...existingData };
+
             if (this.config.useSessionStorage) {
-                this.storeInSession(currentData);
+                this.storeInSession(mergedData);
             } else if (hasConsent) {
-                this.storeInCookie(currentData);
+                this.storeInCookie(mergedData);
             }
         }
+        console.debug('AttributionTracker: initialize end');
     }
 
     captureCurrentData() {
+        console.debug('AttributionTracker: captureCurrentData start');
         const data = {};
-        
-        // Get URL parameters
+        const existingData = this.getStoredData() || {};
         const urlParams = new URLSearchParams(window.location.search);
         
-        // Capture UTM parameters
-        this.utmParams.forEach(param => {
-            if (urlParams.has(param)) {
+        // Only capture params that don't already exist
+        const captureIfNew = (param) => {
+            if (urlParams.has(param) && !existingData[param]) {
                 data[param] = urlParams.get(param);
             }
-        });
+        };
+
+        // Capture UTM parameters
+        this.utmParams.forEach(captureIfNew);
 
         // Capture ad platform parameters
-        Object.entries(this.adPlatformParams).forEach(([platform, params]) => {
-            params.forEach(param => {
-                if (urlParams.has(param)) {
-                    data[param] = urlParams.get(param);
-                }
-            });
-        });
+        Object.values(this.adPlatformParams).flat().forEach(captureIfNew);
 
         // Capture additional configured parameters
-        this.config.additionalParams.forEach(param => {
-            if (urlParams.has(param)) {
-                data[param] = urlParams.get(param);
-            }
-        });
+        this.config.additionalParams.forEach(captureIfNew);
 
-        // Capture referrer if available
-        if (document.referrer) {
+        // Only capture referrer and landing page if not already stored
+        if (!existingData.referrer && document.referrer) {
             data.referrer = document.referrer;
         }
+        
+        if (!existingData.landingPage) {
+            data.landingPage = window.location.href;
+            data.timestamp = new Date().toISOString();
+        }
 
-        // Capture full landing URL
-        data.landingPage = window.location.href;
-        data.timestamp = new Date().toISOString();
-
+        console.debug('AttributionTracker: captureCurrentData end', data);
         return data;
     }
 
     checkCookieConsent() {
+        console.debug('AttributionTracker: checkCookieConsent start');
         // Check for common cookie consent mechanisms
         // This should be customized based on the website's consent management
         if (window.cookieConsent !== undefined) {
@@ -100,33 +100,45 @@ class AttributionTracker {
             }
         }
 
-        return false; // Default to false if no consent mechanism is found
+        const result = true; // Default to true if no consent mechanism is found
+        console.debug('AttributionTracker: checkCookieConsent end', result);
+        return result;
     }
 
     storeInCookie(data) {
+        console.debug('AttributionTracker: storeInCookie start', data);
         const expires = new Date();
         expires.setDate(expires.getDate() + this.config.cookieDuration);
         
         document.cookie = `${this.config.storageKey}=${JSON.stringify(data)}; expires=${expires.toUTCString()}; path=/; SameSite=Strict`;
+        console.debug('AttributionTracker: storeInCookie end');
     }
 
     storeInSession(data) {
+        console.debug('AttributionTracker: storeInSession start', data);
         sessionStorage.setItem(this.config.storageKey, JSON.stringify(data));
+        console.debug('AttributionTracker: storeInSession end');
     }
 
     getStoredData() {
+        console.debug('AttributionTracker: getStoredData start');
         if (this.config.useSessionStorage) {
             const data = sessionStorage.getItem(this.config.storageKey);
-            return data ? JSON.parse(data) : null;
+            const result = data ? JSON.parse(data) : null;
+            console.debug('AttributionTracker: getStoredData end', result);
+            return result;
         }
 
         const cookies = document.cookie.split(';');
         for (const cookie of cookies) {
             const [name, value] = cookie.split('=').map(c => c.trim());
             if (name === this.config.storageKey) {
-                return JSON.parse(decodeURIComponent(value));
+                const result = JSON.parse(decodeURIComponent(value));
+                console.debug('AttributionTracker: getStoredData end', result);
+                return result;
             }
         }
+        console.debug('AttributionTracker: getStoredData end', null);
         return null;
     }
 

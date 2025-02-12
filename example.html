@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attribution Tracker Demo</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Attribution Tracker Demo</h1>
+        
+        <div class="attribution-data">
+            <h2>Current Attribution Data:</h2>
+            <pre id="attributionOutput"></pre>
+        </div>
+
+        <div class="actions">
+            <button onclick="showAllData()">Show All Data</button>
+            <button onclick="showUtmOnly()">Show UTM Only</button>
+            <button onclick="showAdPlatformOnly()">Show Ad Platform Data</button>
+            <button onclick="clearData()">Clear Data</button>
+        </div>
+
+        <div class="test-links">
+            <h3>Test Links:</h3>
+            <p>Click these links to simulate different attribution scenarios:</p>
+            <ul>
+                <li><a href="?utm_source=facebook&utm_medium=social&utm_campaign=summer_sale">Facebook Campaign Link</a></li>
+                <li><a href="?utm_source=google&utm_medium=cpc&utm_campaign=winter_promo&gclid=test123">Google Ads Link</a></li>
+                <li><a href="?utm_source=twitter&utm_medium=social&utm_campaign=launch&twclid=abc123">Twitter Campaign Link</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="tracker.js"></script>
+    <script>
+        // Initialize the tracker
+        const tracker = new AttributionTracker({
+            cookieDuration: 30,
+            useSessionStorage: false,
+            additionalParams: ['ref', 'affiliate']
+        });
+
+        // Helper to display data in the pre element
+        function displayData(data) {
+            document.getElementById('attributionOutput').textContent = 
+                JSON.stringify(data, null, 2);
+        }
+
+        // Button handlers
+        function showAllData() {
+            displayData(tracker.getAll());
+        }
+
+        function showUtmOnly() {
+            displayData(tracker.getUtmParameters());
+        }
+
+        function showAdPlatformOnly() {
+            displayData(tracker.getAdPlatformParameters());
+        }
+
+        function clearData() {
+            tracker.clear();
+            displayData({});
+        }
+
+        // Show initial data on page load
+        showAllData();
+    </script>
+
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        .attribution-data {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        pre {
+            background: #fff;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        .actions {
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .test-links {
+            margin-top: 30px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin: 10px 0;
+        }
+
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</body>
+</html> 
