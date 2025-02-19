@@ -28,13 +28,18 @@ class AttributionTracker {
     initialize() {
         console.debug('AttributionTracker: initialize start');
         const hasConsent = this.checkCookieConsent();
-        const currentData = this.captureCurrentData();
+        
+        // Get and normalize any existing data first
+        const existingData = this.getStoredData();
+        if (existingData && hasConsent) {
+            // Re-store the decoded data to normalize the cookie
+            this.storeInCookie(existingData);
+        }
 
+        const currentData = this.captureCurrentData();
         if (Object.keys(currentData).length > 0) {
-            // Get existing data first
-            const existingData = this.getStoredData() || {};
-            // Merge current data, keeping existing values
-            const mergedData = { ...currentData, ...existingData };
+            // Merge current data with existing (now normalized) data
+            const mergedData = { ...currentData, ...(existingData || {}) };
 
             if (this.config.useSessionStorage) {
                 this.storeInSession(mergedData);
@@ -129,16 +134,40 @@ class AttributionTracker {
             return result;
         }
 
+        console.debug('Raw cookie string:', document.cookie);
         const cookies = document.cookie.split(';');
+        console.debug('Split cookies:', cookies);
+
         for (const cookie of cookies) {
-            const [name, value] = cookie.split('=').map(c => c.trim());
-            if (name === this.config.storageKey) {
-                const result = JSON.parse(decodeURIComponent(value));
-                console.debug('AttributionTracker: getStoredData end', result);
-                return result;
+            console.debug('Processing cookie:', cookie);
+            const name = cookie.substring(0, cookie.indexOf('=')).trim();
+            const value = cookie.substring(cookie.indexOf('=') + 1).trim();
+            console.debug('Parsed cookie name:', name);
+            console.debug('Parsed cookie value:', value);
+            
+            if (name === this.config.storageKey && value) {
+                console.debug('Found matching cookie. Storage key:', this.config.storageKey);
+                try {
+                    console.debug('Attempting to decode:', value);
+                    // Try to detect if the value is URL encoded
+                    const decodedValue = value.includes('%') ? decodeURIComponent(value) : value;
+                    console.debug('Decoded value:', decodedValue);
+                    const result = JSON.parse(decodedValue);
+                    console.debug('Parsed result:', result);
+                    return result;
+                } catch (e) {
+                    console.error('Parse error details:', {
+                        error: e,
+                        errorName: e.name,
+                        errorMessage: e.message,
+                        value,
+                        decodedValue: value.includes('%') ? decodeURIComponent(value) : value
+                    });
+                    return null;
+                }
             }
         }
-        console.debug('AttributionTracker: getStoredData end', null);
+        console.debug('AttributionTracker: getStoredData end - no matching cookie found');
         return null;
     }
 
