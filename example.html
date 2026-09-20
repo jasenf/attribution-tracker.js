@@ -38,7 +38,8 @@
         // Initialize the tracker
         const tracker = new AttributionTracker({
             cookieDuration: 30,
-            useSessionStorage: false,
+            useSessionStorage: true,
+            consent: true,
             additionalParams: ['affiliate']
         });
 
@@ -125,4 +126,4 @@
         }
     </style>
 </body>
-</html> 
+</html>

@@ -1,0 +1,53 @@
+{
+  "name": "@jasenf/attribution-tracker",
+  "version": "0.1.0",
+  "description": "A small, dependency-free first-touch attribution tracker for the browser.",
+  "type": "module",
+  "main": "./dist/attribution-tracker.esm.js",
+  "module": "./dist/attribution-tracker.esm.js",
+  "browser": "./dist/attribution-tracker.js",
+  "exports": {
+    ".": {
+      "import": "./dist/attribution-tracker.esm.js",
+      "default": "./dist/attribution-tracker.esm.js"
+    },
+    "./browser": "./dist/attribution-tracker.js"
+  },
+  "unpkg": "./dist/attribution-tracker.js",
+  "jsdelivr": "./dist/attribution-tracker.js",
+  "files": [
+    "dist",
+    "LICENSE",
+    "readme.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node --check src/attribution-tracker.js && node --check scripts/build.mjs",
+    "test": "node --test",
+    "prepack": "node scripts/build.mjs && node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jasenf/attribution-tracker.js.git"
+  },
+  "homepage": "https://jasenf.github.io/attribution-tracker.js/",
+  "bugs": {
+    "url": "https://github.com/jasenf/attribution-tracker.js/issues"
+  },
+  "keywords": [
+    "attribution",
+    "utm",
+    "marketing",
+    "first-touch",
+    "referrer",
+    "browser"
+  ],
+  "author": "Jasen Fici",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

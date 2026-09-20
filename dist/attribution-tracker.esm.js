@@ -1,7 +1,4 @@
 /** Attribution Tracker v0.1.0 | MIT License | https://github.com/jasenf/attribution-tracker.js */
-(function (global) {
-'use strict';
-
 class AttributionTracker {
     constructor(config = {}) {
         if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -418,5 +415,5 @@ class AttributionTracker {
     }
 }
 
-global.AttributionTracker = AttributionTracker;
-})(typeof window !== 'undefined' ? window : globalThis);
+export { AttributionTracker };
+export default AttributionTracker;

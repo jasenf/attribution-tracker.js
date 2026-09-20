@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Try Attribution Tracker with UTM parameters, referral values, and ad click IDs in your browser.">
+    <title>Attribution Tracker demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main>
+        <nav>
+            <a href="https://github.com/jasenf/attribution-tracker.js">GitHub</a>
+            <a href="https://www.npmjs.com/package/@jasenf/attribution-tracker">npm</a>
+        </nav>
+
+        <header>
+            <p class="eyebrow">Attribution Tracker</p>
+            <h1>See the first touch your browser saved.</h1>
+            <p class="lede">This demo captures campaign parameters, click IDs, the landing page, and the external referrer. It stores the result only in this browser session.</p>
+        </header>
+
+        <section class="card try-it">
+            <div>
+                <h2>Try a campaign visit</h2>
+                <p>Choose an example or edit the URL parameters yourself. The page reloads with test attribution values.</p>
+            </div>
+            <div class="links">
+                <a href="?utm_source=newsletter&utm_medium=email&utm_campaign=demo&ref=partner">Newsletter</a>
+                <a href="?utm_source=google&utm_medium=cpc&utm_campaign=demo&gclid=test-123">Google Ads</a>
+                <a href="?utm_source=reddit&utm_medium=social&utm_campaign=demo&rdt_cid=test-456">Reddit</a>
+            </div>
+        </section>
+
+        <section class="grid">
+            <article class="card output-card">
+                <div class="card-heading">
+                    <h2>Stored attribution</h2>
+                    <button id="clear" type="button">Clear</button>
+                </div>
+                <pre id="output" aria-live="polite"></pre>
+            </article>
+
+            <article class="card code-card">
+                <h2>Use it</h2>
+                <p>Your consent manager should supply the real consent value.</p>
+                <pre><code>&lt;script src="https://cdn.jsdelivr.net/npm/@jasenf/attribution-tracker/dist/attribution-tracker.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  const tracker = new AttributionTracker({
+    consent: () =&gt; window.cookieConsent === true
+  });
+
+  console.log(tracker.getAll());
+&lt;/script&gt;</code></pre>
+            </article>
+        </section>
+
+        <p class="note">The demo passes explicit consent and uses <code>sessionStorage</code>. It does not send the captured values anywhere.</p>
+    </main>
+    <script src="attribution-tracker.js"></script>
+    <script src="demo.js"></script>
+</body>
+</html>
