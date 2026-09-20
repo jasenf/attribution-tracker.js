@@ -12,6 +12,9 @@ class AttributionTracker {
         // Standard UTM parameters
         this.utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
 
+        // Common referral parameters used by newsletters, affiliates, and many hosts
+        this.referralParams = ['ref'];
+
         // Ad platform specific parameters
         this.adPlatformParams = {
             facebook: ['fbclid', 'fb_source', 'fb_ref'],
@@ -20,6 +23,49 @@ class AttributionTracker {
             reddit: ['rdt_cid', 'rdt_source'],
             meta: ['mclid']
         };
+
+        this.platformNames = {
+            facebook: 'Facebook',
+            google: 'Google',
+            twitter: 'Twitter',
+            reddit: 'Reddit',
+            meta: 'Meta'
+        };
+
+        this.utmSourceNames = {
+            facebook: 'Facebook',
+            fb: 'Facebook',
+            instagram: 'Instagram',
+            ig: 'Instagram',
+            meta: 'Meta',
+            google: 'Google',
+            googleads: 'Google',
+            adwords: 'Google',
+            twitter: 'Twitter',
+            x: 'Twitter',
+            reddit: 'Reddit'
+        };
+
+        this.referrerHostNames = [
+            { suffix: 'facebook.com', name: 'Facebook' },
+            { suffix: 'fb.com', name: 'Facebook' },
+            { suffix: 'instagram.com', name: 'Instagram' },
+            { suffix: 'googleadservices.com', name: 'Google' },
+            { suffix: 'doubleclick.net', name: 'Google' },
+            { suffix: 'google.com', name: 'Google' },
+            { suffix: 'twitter.com', name: 'Twitter' },
+            { suffix: 't.co', name: 'Twitter' },
+            { suffix: 'x.com', name: 'Twitter' },
+            { suffix: 'reddit.com', name: 'Reddit' }
+        ];
+
+        this.multiPartTlds = [
+            'co.uk', 'org.uk', 'ac.uk', 'gov.uk',
+            'com.au', 'net.au', 'org.au',
+            'co.nz', 'co.jp', 'co.kr', 'co.in',
+            'com.br', 'com.mx', 'com.ar',
+            'co.za', 'com.sg', 'com.hk'
+        ];
 
         this.initialize();
         console.debug('AttributionTracker: constructor end');
@@ -66,6 +112,9 @@ class AttributionTracker {
         // Capture UTM parameters
         this.utmParams.forEach(captureIfNew);
 
+        // Capture common referral parameters
+        this.referralParams.forEach(captureIfNew);
+
         // Capture ad platform parameters
         Object.values(this.adPlatformParams).flat().forEach(captureIfNew);
 
@@ -82,8 +131,129 @@ class AttributionTracker {
             data.timestamp = new Date().toISOString();
         }
 
+        this.inferRef(data, existingData);
+
         console.debug('AttributionTracker: captureCurrentData end', data);
         return data;
+    }
+
+    inferRef(data, existingData) {
+        if (data.ref || existingData.ref) {
+            return;
+        }
+
+        const combined = { ...existingData, ...data };
+
+        for (const [platform, params] of Object.entries(this.adPlatformParams)) {
+            if (params.some((param) => combined[param])) {
+                data.ref = this.platformNames[platform];
+                return;
+            }
+        }
+
+        const utmSource = (combined.utm_source || '').toLowerCase();
+        if (utmSource && this.utmSourceNames[utmSource]) {
+            data.ref = this.utmSourceNames[utmSource];
+            return;
+        }
+
+        const hostname = this.getHostname(combined.referrer || document.referrer);
+        if (!hostname) {
+            return;
+        }
+
+        if (hostname === 'google.com' || hostname.endsWith('.google.com') || hostname.startsWith('google.')) {
+            data.ref = 'Google';
+            return;
+        }
+
+        const hostMatch = this.referrerHostNames.find((entry) => (
+            hostname === entry.suffix || hostname.endsWith('.' + entry.suffix)
+        ));
+        if (hostMatch) {
+            data.ref = hostMatch.name;
+            return;
+        }
+
+        this.inferRefFromReferrerDomain(data, hostname);
+    }
+
+    inferRefFromReferrerDomain(data, hostname) {
+        if (!this.isPublicHostname(hostname)) {
+            return;
+        }
+
+        const currentHost = this.getHostname(window.location.href);
+        if (this.getRegistrableDomain(hostname) === this.getRegistrableDomain(currentHost)) {
+            return;
+        }
+
+        const label = this.getDomainLabel(hostname);
+        if (!label) {
+            return;
+        }
+
+        data.ref = this.formatDomainName(label);
+    }
+
+    isPublicHostname(hostname) {
+        if (!hostname || hostname === 'localhost' || !hostname.includes('.')) {
+            return false;
+        }
+
+        return !/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname);
+    }
+
+    getRegistrableDomain(hostname) {
+        if (!hostname) {
+            return '';
+        }
+
+        const host = hostname.toLowerCase();
+        const matchedTld = this.multiPartTlds.find((tld) => host === tld || host.endsWith('.' + tld));
+        if (matchedTld) {
+            if (host === matchedTld) {
+                return host;
+            }
+
+            const withoutTld = host.slice(0, -(matchedTld.length + 1));
+            const label = withoutTld.split('.').pop();
+            return label + '.' + matchedTld;
+        }
+
+        const parts = host.split('.').filter(Boolean);
+        if (parts.length < 2) {
+            return host;
+        }
+
+        return parts.slice(-2).join('.');
+    }
+
+    getDomainLabel(hostname) {
+        const registrable = this.getRegistrableDomain(hostname);
+        return registrable.split('.')[0] || '';
+    }
+
+    formatDomainName(label) {
+        return label.split('-').map((part) => {
+            if (!part) {
+                return part;
+            }
+
+            return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+        }).join('-');
+    }
+
+    getHostname(url) {
+        if (!url) {
+            return '';
+        }
+
+        try {
+            return new URL(url).hostname.toLowerCase();
+        } catch (e) {
+            return '';
+        }
     }
 
     checkCookieConsent() {
@@ -189,6 +359,11 @@ class AttributionTracker {
         return Object.fromEntries(
             Object.entries(data).filter(([key]) => allAdParams.includes(key))
         );
+    }
+
+    getRef() {
+        const data = this.getStoredData();
+        return data?.ref || null;
     }
 
     getReferrer() {

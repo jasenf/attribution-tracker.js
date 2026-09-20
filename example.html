@@ -28,6 +28,7 @@
                 <li><a href="?utm_source=facebook&utm_medium=social&utm_campaign=summer_sale">Facebook Campaign Link</a></li>
                 <li><a href="?utm_source=google&utm_medium=cpc&utm_campaign=winter_promo&gclid=test123">Google Ads Link</a></li>
                 <li><a href="?utm_source=twitter&utm_medium=social&utm_campaign=launch&twclid=abc123">Twitter Campaign Link</a></li>
+                <li><a href="?ref=newsletter">Referral link with ref</a></li>
             </ul>
         </div>
     </div>
@@ -38,7 +39,7 @@
         const tracker = new AttributionTracker({
             cookieDuration: 30,
             useSessionStorage: false,
-            additionalParams: ['ref', 'affiliate']
+            additionalParams: ['affiliate']
         });
 
         // Helper to display data in the pre element

@@ -7,6 +7,7 @@ A lightweight, configurable JavaScript utility for capturing and storing marketi
 Marketing attribution can be complex, especially when dealing with multiple advertising platforms and traffic sources. This utility:
 
 - Automatically captures UTM parameters from your marketing campaigns
+- Tracks the common `ref` query parameter used by newsletters, affiliates, and many hosts
 - Tracks ad platform-specific parameters (Facebook, Google Ads, Twitter, Reddit, Meta)
 - Stores the initial HTTP referrer and complete landing page URL
 - Respects user privacy settings and GDPR compliance
@@ -31,7 +32,7 @@ The tracker accepts a configuration object with the following options:
 const tracker = new AttributionTracker({
     cookieDuration: 30,              // Number of days to store data (default: 30)
     useSessionStorage: false,        // Use sessionStorage instead of cookies (default: false)
-    additionalParams: [],            // Array of additional URL parameters to track
+    additionalParams: [],            // Extra query keys to store on the same object (`ref` is already tracked)
     storageKey: 'attribution_data'   // Key used for storage (default: 'attribution_data')
 });
 ```
@@ -42,7 +43,7 @@ const tracker = new AttributionTracker({
 |--------|------|---------|-------------|
 | cookieDuration | number | 30 | Number of days before the cookie expires |
 | useSessionStorage | boolean | false | If true, uses sessionStorage instead of cookies |
-| additionalParams | string[] | [] | Additional URL parameters to track |
+| additionalParams | string[] | [] | Extra query keys to store alongside the defaults. `ref` is already tracked |
 | storageKey | string | 'attribution_data' | Key used for cookie or sessionStorage |
 
 ## Tracked Parameters
@@ -53,6 +54,20 @@ const tracker = new AttributionTracker({
 - utm_campaign
 - utm_content
 - utm_term
+
+### Referral Parameters
+- ref
+
+`ref` is captured automatically. You do not need to add it to `additionalParams`.
+
+If the URL has `?ref=`, that value is stored. If `ref` is missing, the tracker fills it with a business name when first-touch data already points at a known source:
+
+- Ad platform parameters: `fbclid` becomes Facebook, `gclid` becomes Google, `twclid` becomes Twitter, `rdt_cid` becomes Reddit, `mclid` becomes Meta
+- Known `utm_source` values such as `facebook`, `instagram`, `google`, `twitter`, or `reddit`
+- A first-touch HTTP referrer from a matching host, such as `facebook.com` or `google.com`
+- Any other first-touch HTTP referrer whose registrable domain is not the current site. `www.medium.com` becomes Medium, `news.ycombinator.com` becomes Ycombinator. Same-site referrers are ignored, including `www` to apex on your own domain.
+
+An explicit `?ref=` wins. `ref` is still separate from `referrer`, which is the HTTP `document.referrer` URL.
 
 ### Ad Platform Parameters
 
@@ -76,15 +91,67 @@ const tracker = new AttributionTracker({
 - rdt_cid
 - rdt_source
 
+## Stored data object
+
+`getAll()` is the main way to read what the tracker captured. It returns the stored object, or `null` if nothing has been saved yet.
+
+Only keys that were present on first touch are included. Extra keys from `additionalParams` land on the same object.
+
+```javascript
+const tracker = new AttributionTracker();
+const attribution = tracker.getAll();
+
+// Typical shape after a first visit from a campaign URL:
+// {
+//   utm_source: "newsletter",
+//   utm_medium: "email",
+//   utm_campaign: "spring",
+//   utm_content: "header-cta",
+//   utm_term: "attribution",
+//   ref: "partner-site",
+//   gclid: "abc123",
+//   referrer: "https://example.com/article",
+//   landingPage: "https://yoursite.com/pricing?utm_source=newsletter&ref=partner-site",
+//   timestamp: "2026-09-20T12:00:00.000Z"
+// }
+
+attribution.ref
+attribution.utm_source
+attribution.gclid
+attribution.referrer
+attribution.landingPage
+attribution.timestamp
+```
+
+| Key | Source | Notes |
+|-----|--------|-------|
+| utm_source, utm_medium, utm_campaign, utm_content, utm_term | Query string | Standard UTM fields |
+| ref | Query string, or inferred | `?ref=` if present. Otherwise a known platform name, or the referrer's second-level domain (Medium from `www.medium.com`) when the referrer is not your own site. Not the same as `referrer` |
+| fbclid, fb_source, fb_ref, mclid | Query string | Facebook / Meta |
+| gclid, gclsrc, dclid, gad_source | Query string | Google Ads |
+| twclid, tw_source | Query string | Twitter |
+| rdt_cid, rdt_source | Query string | Reddit |
+| any `additionalParams` value | Query string | Your custom keys, same top-level object |
+| referrer | `document.referrer` | First-touch HTTP referrer URL |
+| landingPage | `window.location.href` | Full first-touch URL, including query string |
+| timestamp | Capture time | ISO 8601 string set with `landingPage` |
+
+First-touch values win. If `utm_source` or `ref` is already stored, a later visit does not overwrite it. An inferred `ref` is only written when `ref` is still empty.
+
 ## Methods
 
 ### Main Methods
 
 #### `getAll()`
-Returns all stored attribution data as an object.
+Returns the stored attribution object described above, or `null`.
 
 ```javascript
-const allData = tracker.getAll();
+const attribution = tracker.getAll();
+
+if (attribution) {
+    const source = attribution.utm_source || attribution.ref || 'direct';
+    const landingPage = attribution.landingPage;
+}
 ```
 
 #### `getUtmParameters()`
@@ -100,6 +167,15 @@ Returns only ad platform-specific parameters.
 ```javascript
 const adData = tracker.getAdPlatformParameters();
 ```
+
+#### `getRef()`
+Returns the stored `ref` value, or `null`. This is the query `?ref=`, or the inferred business name / second-level domain.
+
+```javascript
+const ref = tracker.getRef();
+```
+
+This is not the HTTP referrer. Use `getReferrer()` for that URL, or `getAll().ref` if you already have the object.
 
 #### `getReferrer()`
 Returns the initial HTTP referrer URL.
@@ -166,8 +242,10 @@ checkCookieConsent() {
 const tracker = new AttributionTracker();
 
 // Later, when you need the data
-const allAttributionData = tracker.getAll();
-console.log('Attribution Data:', allAttributionData);
+const attribution = tracker.getAll();
+console.log(attribution.ref);
+console.log(attribution.utm_source);
+console.log(attribution.landingPage);
 ```
 
 ### Custom Configuration
@@ -180,7 +258,11 @@ const tracker = new AttributionTracker({
     storageKey: 'my_attribution_data'
 });
 
-// Get specific data types
+const attribution = tracker.getAll();
+attribution.ref
+attribution.affiliate_id
+attribution.custom_source
+
 const utmData = tracker.getUtmParameters();
 const adData = tracker.getAdPlatformParameters();
 const referrer = tracker.getReferrer();
