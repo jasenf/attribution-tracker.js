@@ -21,4 +21,12 @@ jobs:
           package-manager-cache: false
       - run: npm test
       - run: npm run build
-      - run: npm publish
+      - name: Publish when the version is new
+        shell: bash
+        run: |
+          package_spec=$(node -p "const p=require('./package.json'); p.name+'@'+p.version")
+          if npm view "$package_spec" version >/dev/null 2>&1; then
+            echo "$package_spec is already published."
+          else
+            npm publish
+          fi
