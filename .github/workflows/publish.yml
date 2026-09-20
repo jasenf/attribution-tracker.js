@@ -1,6 +1,7 @@
 name: Publish package
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*"
@@ -24,9 +25,8 @@ jobs:
       - name: Publish when the version is new
         shell: bash
         run: |
-          package_spec=$(node -p "const p=require('./package.json'); p.name+'@'+p.version")
-          if npm view "$package_spec" version >/dev/null 2>&1; then
-            echo "$package_spec is already published."
+          if node scripts/is-published.mjs; then
+            echo "The package version is already available."
           else
             npm publish
           fi
