@@ -12,7 +12,7 @@ A small, dependency-free browser library for keeping the first marketing touch t
 ### Script tag
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@jasenf/attribution-tracker/dist/attribution-tracker.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@feech/attribution-tracker/dist/attribution-tracker.js"></script>
 <script>
   const tracker = new AttributionTracker({
     consent: () => window.cookieConsent === true
@@ -27,11 +27,11 @@ You can also download [`tracker.js`](tracker.js) and serve it from your own site
 ### npm
 
 ```bash
-npm install @jasenf/attribution-tracker
+npm install @feech/attribution-tracker
 ```
 
 ```javascript
-import AttributionTracker from '@jasenf/attribution-tracker';
+import AttributionTracker from '@feech/attribution-tracker';
 
 const tracker = new AttributionTracker({ consent: true });
 console.log(tracker.getAll());
