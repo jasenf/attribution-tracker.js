@@ -151,6 +151,8 @@ form.addEventListener('submit', () => {
 });
 ```
 
+For a complete HTML example that adds individual hidden fields and previews the submitted payload, see [`examples/form-hidden-fields.html`](examples/form-hidden-fields.html). The same form shape works with Formspree or a conventional server endpoint.
+
 ### Use session storage
 
 ```javascript
