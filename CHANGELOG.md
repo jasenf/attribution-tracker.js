@@ -4,7 +4,7 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## 0.1.1
 
-- Pinned the jsDelivr script-tag example to the released package version so a stale unversioned CDN lookup cannot break installation.
+- Pinned the jsDelivr script-tag example to the GitHub release so a stale unversioned CDN lookup cannot break installation.
 
 ## 0.1.0
 
