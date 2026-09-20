@@ -12,7 +12,7 @@ A small, dependency-free browser library for keeping the first marketing touch t
 ### Script tag
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@feech/attribution-tracker/dist/attribution-tracker.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@feech/attribution-tracker@0.1.1/dist/attribution-tracker.js"></script>
 <script>
   const tracker = new AttributionTracker({
     consent: () => window.cookieConsent === true

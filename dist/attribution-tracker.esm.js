@@ -1,4 +1,4 @@
-/** Attribution Tracker v0.1.0 | MIT License | https://github.com/jasenf/attribution-tracker.js */
+/** Attribution Tracker v0.1.1 | MIT License | https://github.com/jasenf/attribution-tracker.js */
 class AttributionTracker {
     constructor(config = {}) {
         if (typeof window === 'undefined' || typeof document === 'undefined') {

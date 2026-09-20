@@ -1,6 +1,6 @@
 {
   "name": "@feech/attribution-tracker",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A small, dependency-free first-touch attribution tracker for the browser.",
   "type": "module",
   "main": "./dist/attribution-tracker.esm.js",
