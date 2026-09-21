@@ -153,6 +153,8 @@ form.addEventListener('submit', () => {
 
 For a complete HTML example that adds individual hidden fields and previews the submitted payload, see [`examples/form-hidden-fields.html`](examples/form-hidden-fields.html). The same form shape works with Formspree or a conventional server endpoint.
 
+If you use Google Tag Manager, see the [GTM consent and form handoff recipe](examples/google-tag-manager.md).
+
 ### Use session storage
 
 ```javascript
