@@ -153,6 +153,8 @@ form.addEventListener('submit', () => {
 
 For a complete HTML example that adds individual hidden fields and previews the submitted payload, see [`examples/form-hidden-fields.html`](examples/form-hidden-fields.html). The same form shape works with Formspree or a conventional server endpoint.
 
+The [form attribution guide](https://jasenf.github.io/attribution-tracker.js/form-attribution.html) explains how to keep the first touch for a return visit and attach selected fields at submission time.
+
 If you use Google Tag Manager, see the [GTM consent and form handoff recipe](examples/google-tag-manager.md).
 
 ### Use session storage

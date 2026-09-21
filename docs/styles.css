@@ -77,6 +77,16 @@ pre {
 .code-card p, .note { color: var(--muted); }
 .note { text-align: center; margin: 24px auto 0; }
 
+.guide { max-width: 820px; }
+.guide header { padding: 64px 0 20px; }
+.guide h1 { font-size: clamp(2.4rem, 6vw, 4.2rem); }
+.guide h2 { font-size: 1.4rem; margin-bottom: 12px; }
+.guide section { margin-top: 44px; }
+.guide section p { color: var(--muted); }
+.guide code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.guide p code { color: var(--text); }
+.guide pre { margin-top: 16px; }
+
 @media (max-width: 760px) {
     header { padding-top: 60px; }
     .try-it, .grid { display: grid; grid-template-columns: 1fr; }

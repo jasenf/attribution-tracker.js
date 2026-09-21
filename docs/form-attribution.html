@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Keep first-touch UTM values when someone returns to your site, then add selected values to a native HTML form after consent.">
+    <link rel="canonical" href="https://jasenf.github.io/attribution-tracker.js/form-attribution.html">
+    <title>Pass first-touch UTMs into an HTML form | Attribution Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="guide">
+        <nav aria-label="Site navigation">
+            <a href="./">Demo</a>
+            <a href="https://github.com/jasenf/attribution-tracker.js">GitHub</a>
+            <a href="https://www.npmjs.com/package/@feech/attribution-tracker">npm</a>
+        </nav>
+
+        <article>
+            <header>
+                <p class="eyebrow">Guide</p>
+                <h1>Pass first-touch UTMs into an HTML form</h1>
+                <p class="lede">Someone arrives through a campaign link, looks around, and returns directly a few days later to fill out a form. The URL on that second visit no longer has the campaign parameters. This example keeps the first visit in the browser and adds selected values to the form when it is submitted.</p>
+            </header>
+
+            <section>
+                <h2>Start with a native form</h2>
+                <p>Give the form an ID so the script can find it. Keep your real action URL and any validation you already use.</p>
+                <pre><code>&lt;form id="lead-form" action="/lead" method="post"&gt;
+  &lt;label for="email"&gt;Email&lt;/label&gt;
+  &lt;input id="email" name="email" type="email" required&gt;
+  &lt;button type="submit"&gt;Send&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+            </section>
+
+            <section>
+                <h2>Capture, then attach the fields</h2>
+                <p>Put this after the form. The example assumes your consent manager keeps <code>window.cookieConsent</code> current and calls <code>syncConsent()</code> when the decision changes. Replace that connection with your actual consent manager. The tracker does not provide a consent banner.</p>
+                <pre><code>&lt;script src="https://cdn.jsdelivr.net/gh/jasenf/attribution-tracker.js@v0.1.1/dist/attribution-tracker.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  const hasConsent = () =&gt;
+    window.cookieConsent === true &amp;&amp;
+    navigator.globalPrivacyControl !== true &amp;&amp;
+    navigator.doNotTrack !== '1';
+
+  let tracker;
+  function syncConsent() {
+    if (hasConsent()) {
+      tracker = new AttributionTracker({ consent: hasConsent });
+    } else {
+      tracker?.clear();
+      tracker = undefined;
+    }
+  }
+  syncConsent();
+  // Call syncConsent() again from your consent manager's change callback.
+
+  const form = document.querySelector('#lead-form');
+  form.addEventListener('submit', () =&gt; {
+    form.querySelectorAll('[data-attribution-field]').forEach(field =&gt; field.remove());
+    if (!hasConsent() || !tracker) return;
+
+    const data = tracker.getAll() || {};
+    for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'ref']) {
+      if (!data[key]) continue;
+      const field = document.createElement('input');
+      field.type = 'hidden';
+      field.name = `attribution_${key}`;
+      field.value = data[key];
+      field.dataset.attributionField = '';
+      form.append(field);
+    }
+  });
+&lt;/script&gt;</code></pre>
+                <p>The code attaches only the four named values. It does not include the full landing-page URL or referrer, which may contain sensitive query data. Change the allowlist only after checking what your form endpoint needs.</p>
+            </section>
+
+            <section>
+                <h2>Test the return visit</h2>
+                <p>Open your site with <code>?utm_source=newsletter&amp;utm_campaign=launch</code>, grant consent, and then visit the same site without those parameters. Submit the form and inspect the request. It should include <code>attribution_utm_source=newsletter</code> and <code>attribution_utm_campaign=launch</code> once each.</p>
+                <p>If the visitor leaves before granting consent, this browser-only code cannot recover the earlier landing URL. If your form is submitted through JavaScript without a native <code>submit</code> event, add the values to that form's own payload instead. Clearing browser storage also clears the saved first touch.</p>
+                <p>For a page you can run locally, use the <a href="https://github.com/jasenf/attribution-tracker.js/blob/main/examples/form-hidden-fields.html">complete form example</a>. The <a href="https://github.com/jasenf/attribution-tracker.js/blob/main/examples/google-tag-manager.md">Google Tag Manager recipe</a> covers the same handoff inside GTM.</p>
+            </section>
+        </article>
+    </main>
+</body>
+</html>
