@@ -157,6 +157,8 @@ The [form attribution guide](https://jasenf.github.io/attribution-tracker.js/for
 
 If you use Google Tag Manager, see the [GTM consent and form handoff recipe](examples/google-tag-manager.md).
 
+For the App Router, the [Next.js example](examples/nextjs-app-router) uses a consent-aware Client Component and sends selected values to a Server Action.
+
 ### Use session storage
 
 ```javascript
