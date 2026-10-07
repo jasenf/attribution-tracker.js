@@ -7,6 +7,20 @@ A small, dependency-free browser library for keeping the first marketing touch t
 
 [Try the live demo](https://jasenf.github.io/attribution-tracker.js/) or [read the source](src/attribution-tracker.js).
 
+## When to use it
+
+Use Attribution Tracker when you need to keep the first marketing touch in the browser and pass selected values into a form, Server Action, analytics event, or backend request. It is deliberately smaller than a full analytics platform.
+
+| Requirement | Fit |
+| --- | --- |
+| Keep first-touch UTMs, supported click IDs, landing page, and referrer | Yes |
+| Store data in a first-party cookie or `sessionStorage` | Yes |
+| Send data to a form, analytics service, or CRM | Your application handles the handoff |
+| Collect page views, events, sessions, or conversions | No |
+| Connect activity across devices or cleared storage | No |
+| Model multiple touches or assign conversion credit | No |
+| Replace a consent manager | No |
+
 ## Install
 
 ### Script tag
@@ -177,9 +191,18 @@ const tracker = new AttributionTracker({
 - The built-in registrable-domain helper covers common multi-part domains. It is not a complete public suffix implementation.
 - The library does not submit attribution to a form, analytics service, or CRM unless your application does so.
 
-## Browser support
+## Support matrix
 
-The distributed browser build uses standard APIs available in current versions of Chrome, Edge, Firefox, and Safari. The library requires `URL`, `URLSearchParams`, cookies or `sessionStorage`, and modern JavaScript syntax.
+| Area | Support | Notes |
+| --- | --- | --- |
+| Browsers | Current Chrome, Edge, Firefox, and Safari | Requires `URL`, `URLSearchParams`, cookies or `sessionStorage`, and modern JavaScript syntax. |
+| Storage | First-party cookie or `sessionStorage` | Cookie storage is the default. Session storage lasts for the browser session. |
+| Consent integration | Boolean or callback | Connect the callback to the site's consent manager. |
+| GPC and DNT | Automatic blocking | Applied when an explicit `consent` value or callback has not already supplied the decision. |
+| Campaign parameters | Five standard UTM fields plus `ref` | Add project-specific query parameters with `additionalParams`. |
+| Advertising click IDs | Google, Facebook and Meta, X and Twitter, and Reddit | The exact supported parameters are listed under [What it stores](#what-it-stores). |
+| Network requests | None | The library only stores and returns attribution data. |
+| Server-side or cross-device identity | Not included | Send selected fields to your own backend if you need server-side processing. |
 
 ## Development
 

@@ -37,10 +37,16 @@
   "keywords": [
     "attribution",
     "utm",
+    "utm-tracking",
     "marketing",
+    "marketing-attribution",
     "first-touch",
     "referrer",
-    "browser"
+    "browser",
+    "click-id",
+    "cookie",
+    "session-storage",
+    "first-party-data"
   ],
   "author": "Jasen Fici",
   "license": "MIT",
