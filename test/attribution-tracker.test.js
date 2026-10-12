@@ -207,3 +207,23 @@ test('honors Global Privacy Control before automatic consent detection', () => {
     assert.equal(tracker.getAll(), null);
     assert.equal(browser.cookieJar.has('attribution_data'), false);
 });
+
+test('honors Do Not Track before automatic consent detection', () => {
+    const browser = installBrowser({
+        url: 'https://example.com/?utm_source=blocked',
+        cookies: { cookie_consent: 'allow' }
+    });
+    navigator.doNotTrack = '1';
+    const tracker = new AttributionTracker();
+
+    assert.equal(tracker.getAll(), null);
+    assert.equal(browser.cookieJar.has('attribution_data'), false);
+});
+
+test('treats an explicit consent callback as authoritative', () => {
+    installBrowser({ url: 'https://example.com/?utm_source=callback' });
+    navigator.globalPrivacyControl = true;
+    const tracker = new AttributionTracker({ consent: () => true });
+
+    assert.equal(tracker.getAll().utm_source, 'callback');
+});

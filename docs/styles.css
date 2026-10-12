@@ -83,6 +83,8 @@ pre {
 .guide h2 { font-size: 1.4rem; margin-bottom: 12px; }
 .guide section { margin-top: 44px; }
 .guide section p { color: var(--muted); }
+.guide .byline { color: var(--muted); font-size: 0.9rem; }
+.guide section ul { color: var(--muted); padding-left: 1.25rem; }
 .guide code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
 .guide p code { color: var(--text); }
 .guide pre { margin-top: 16px; }

@@ -136,6 +136,8 @@ const tracker = new AttributionTracker({
 
 Landing page URLs, referrers, advertising click IDs, and custom parameters can contain identifying or sensitive values. Decide what to capture, how long to retain it, and where it may be sent before using the library in production.
 
+The [GPC and DNT guide](https://jasenf.github.io/attribution-tracker.js/privacy-signals.html) shows how to combine browser privacy signals with a consent-manager callback, clear stored attribution after withdrawal, and test the main decision paths.
+
 ## API
 
 | Method | Result |

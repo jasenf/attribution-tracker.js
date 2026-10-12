@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Use GPC, DNT, and your site's consent decision together before storing first-touch attribution data in the browser.">
+    <link rel="canonical" href="https://jasenf.github.io/attribution-tracker.js/privacy-signals.html">
+    <title>Check GPC and DNT before storing attribution data | Attribution Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="guide">
+        <nav aria-label="Site navigation">
+            <a href="./">Demo</a>
+            <a href="form-attribution.html">Form guide</a>
+            <a href="https://github.com/jasenf/attribution-tracker.js">GitHub</a>
+            <a href="https://www.npmjs.com/package/@feech/attribution-tracker">npm</a>
+        </nav>
+
+        <article>
+            <header>
+                <p class="eyebrow">Privacy guide</p>
+                <h1>Check GPC and DNT before storing attribution data</h1>
+                <p class="lede">A small attribution helper can still store landing-page URLs, referrers, and advertising click IDs. Wait for the site's consent decision, and include browser privacy signals in that decision when they matter to your implementation.</p>
+                <p class="byline">Project guide for Attribution Tracker 0.1.1. Prepared with AI assistance and checked against the library source, tests, and linked standards documentation.</p>
+            </header>
+
+            <section>
+                <h2>GPC and DNT are different signals</h2>
+                <p><a href="https://w3c.github.io/gpc/">Global Privacy Control</a> communicates a request not to sell or share a person's data. Supporting browsers expose the value through <code>navigator.globalPrivacyControl</code> and send the corresponding <code>Sec-GPC: 1</code> request header. The JavaScript property still has limited browser availability, so a missing or false value is not proof that a person made an affirmative choice.</p>
+                <p><a href="https://developer.mozilla.org/en-US/docs/Web/API/Navigator/doNotTrack">Do Not Track</a> uses <code>navigator.doNotTrack</code>. MDN marks it deprecated and non-standard, and the underlying specification was discontinued. Attribution Tracker still treats the value <code>"1"</code> as a conservative reason not to store attribution automatically.</p>
+                <p>Neither signal replaces a consent manager or settles every legal question. They express different preferences, and their effect depends on the data use and applicable rules.</p>
+            </section>
+
+            <section>
+                <h2>Put the decision in one callback</h2>
+                <p>If your site already has a consent manager, combine its decision with the privacy signals in one function. This example assumes <code>window.cookieConsent</code> is kept current by that manager.</p>
+                <pre><code>&lt;script src="https://cdn.jsdelivr.net/gh/jasenf/attribution-tracker.js@v0.1.1/dist/attribution-tracker.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  const hasAttributionConsent = () =&gt; {
+    if (navigator.globalPrivacyControl === true) return false;
+    if (navigator.doNotTrack === '1') return false;
+    return window.cookieConsent === true;
+  };
+
+  let tracker;
+  function syncAttributionConsent() {
+    if (!hasAttributionConsent()) {
+      tracker?.clear();
+      tracker = undefined;
+      return;
+    }
+
+    tracker = new AttributionTracker({
+      consent: hasAttributionConsent
+    });
+  }
+
+  syncAttributionConsent();
+  // Call syncAttributionConsent() from the consent manager's change callback.
+&lt;/script&gt;</code></pre>
+                <p>The callback is intentionally authoritative. Attribution Tracker checks an explicit <code>consent</code> boolean or callback before its automatic GPC, DNT, global variable, and consent-cookie detection. If your callback should honor GPC or DNT, include those checks in the callback as shown.</p>
+                <p>When consent is withdrawn, <code>clear()</code> removes this library's cookie or session-storage value. It cannot remove copies that your application already sent elsewhere, so apply the same decision before adding attribution to a form, analytics event, or backend request.</p>
+            </section>
+
+            <section>
+                <h2>Test the decision paths</h2>
+                <p>Run these cases in the browsers and consent-manager configuration your site supports:</p>
+                <ul>
+                    <li>No consent decision: the tracker should store nothing.</li>
+                    <li><code>globalPrivacyControl === true</code>: the callback should return false even if a consent cookie says allow.</li>
+                    <li><code>doNotTrack === "1"</code>: the callback should return false.</li>
+                    <li>No blocking signal and an affirmative consent decision: the tracker should store the first-touch values.</li>
+                    <li>Consent withdrawn after capture: the change callback should run <code>clear()</code>.</li>
+                </ul>
+                <p>If the visitor leaves before granting consent, browser-only code cannot recover the earlier landing URL on a later visit. That is the consequence of not storing data before the decision is known.</p>
+            </section>
+
+            <section>
+                <h2>Keep the handoff narrow</h2>
+                <p>Landing-page URLs, referrers, click IDs, and custom query parameters can contain identifying or sensitive values. Send only the fields the destination needs. The <a href="form-attribution.html">form attribution guide</a> uses a four-field allowlist instead of posting the complete stored object.</p>
+                <p>Client-side checks cover this library's browser storage. A server that needs to respond to GPC must handle the <code>Sec-GPC</code> request header separately. Review the <a href="https://w3c.github.io/gpc/">GPC specification</a>, the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Navigator/globalPrivacyControl">MDN GPC reference</a>, and the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Navigator/doNotTrack">MDN DNT reference</a> for the current platform behavior. This guide describes the library's behavior and is not legal advice.</p>
+            </section>
+        </article>
+    </main>
+</body>
+</html>
