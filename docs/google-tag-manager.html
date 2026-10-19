@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Capture first-touch attribution after consent in GTM, create data-layer variables, and pass selected values to a native form.">
+<link rel="canonical" href="https://jasenf.github.io/attribution-tracker.js/google-tag-manager.html">
+<title>Use Attribution Tracker with Google Tag Manager | Attribution Tracker</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="guide">
+<nav aria-label="Site navigation"><a href="./">Demo</a><a href="guides.html">Guides</a><a href="https://github.com/jasenf/attribution-tracker.js">GitHub</a><a href="https://www.npmjs.com/package/@feech/attribution-tracker">npm</a></nav>
+<article class="rendered-guide">
+<header><p class="eyebrow"><a href="guides.html">Guides</a></p><h1>Use Attribution Tracker with Google Tag Manager</h1><p class="byline">Attribution Tracker project guide. Adapted with AI assistance from the project's integration example and reviewed against the linked platform documentation. Verify your own consent-manager and form configuration before deployment.</p></header>
+
+
+<p>This recipe captures a visitor's first UTM values after consent, makes selected values available to GTM, and adds them to a native HTML form. It does not send an analytics event or submit a form by itself.</p>
+<p>It assumes you already have a consent manager connected to a GTM web container. The consent manager must make the current decision available to page code and emit an event when consent is granted. Adapt the function and event names below to your setup. There is no universal GTM variable that represents every consent manager's decision.</p>
+<h2 id="connect-the-consent-decision">1. Connect the consent decision</h2>
+<p>Before the tracker tag runs, define <code>window.hasAttributionConsent</code> using your consent manager's API. It must return <code>true</code> only while the storage category you selected for this tracker is granted. For example, if your site already maintains a boolean <code>window.cookieConsent</code>:</p>
+<pre><code class="language-html">&lt;script&gt;
+  window.hasAttributionConsent = function () {
+    return window.cookieConsent === true;
+  };
+&lt;/script&gt;
+</code></pre>
+<p>That example is not a consent banner. Use your site's actual consent decision. When a visitor grants consent after page load, have the consent manager push this event <strong>after</strong> it updates its GTM consent state:</p>
+<pre><code class="language-js">window.dataLayer = window.dataLayer || [];
+window.dataLayer.push({ event: 'attribution_consent_granted' });
+</code></pre>
+<p>If consent is withdrawn, update the decision returned by <code>hasAttributionConsent</code> immediately, clear the stored attribution, and clear the selected data-layer values. For example, in your consent manager's revocation handler:</p>
+<pre><code class="language-js">window.attributionTracker?.clear();
+window.dataLayer = window.dataLayer || [];
+window.dataLayer.push({
+  attribution: {
+    utm_source: null,
+    utm_medium: null,
+    utm_campaign: null,
+    ref: null
+  }
+});
+</code></pre>
+<p>Review any other tags that consumed those values before revocation.</p>
+<h2 id="create-the-gtm-tag-and-triggers">2. Create the GTM tag and triggers</h2>
+<p>Create a <strong>Custom HTML</strong> tag named <code>Attribution Tracker - capture and form fields</code>. Paste the code below. Add two firing triggers:</p>
+<ol>
+<li><strong>Initialization - All Pages</strong>, for visitors whose consent was already granted before this page loaded.</li>
+<li><strong>Custom Event</strong> with event name <code>attribution_consent_granted</code>, for visitors who grant consent on this page.</li>
+</ol>
+<p>Under <strong>Advanced settings &gt; Consent settings</strong>, select <strong>Require additional consent for tag to fire</strong> and add the consent type your site uses for this first-party storage. <code>analytics_storage</code> is one common choice, but use the category that matches your consent policy and CMP configuration. Keep the site's CMP on its own <strong>Consent Initialization</strong> trigger; this tracker tag does not set GTM consent state.</p>
+<pre><code class="language-html">&lt;script&gt;
+(function () {
+  function allowed() {
+    return typeof window.hasAttributionConsent === 'function' &amp;&amp;
+      window.hasAttributionConsent() === true &amp;&amp;
+      navigator.globalPrivacyControl !== true &amp;&amp;
+      navigator.doNotTrack !== '1';
+  }
+
+  function publish(tracker) {
+    var data = tracker.getAll() || {};
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: 'attribution_tracker_ready',
+      attribution: {
+        utm_source: data.utm_source || null,
+        utm_medium: data.utm_medium || null,
+        utm_campaign: data.utm_campaign || null,
+        ref: data.ref || null
+      }
+    });
+  }
+
+  if (!allowed() || window.__attributionTrackerLoading) return;
+  if (window.attributionTracker) {
+    window.attributionTracker.initialize();
+    publish(window.attributionTracker);
+    return;
+  }
+  window.__attributionTrackerLoading = true;
+
+  var script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/gh/jasenf/attribution-tracker.js@v0.1.1/dist/attribution-tracker.js';
+  script.onload = function () {
+    window.__attributionTrackerLoading = false;
+    if (!allowed() || typeof window.AttributionTracker !== 'function') return;
+
+    var tracker = new window.AttributionTracker({ consent: allowed });
+    window.attributionTracker = tracker;
+    publish(tracker);
+
+    document.addEventListener('submit', function (event) {
+      var form = event.target;
+      if (!allowed() || !form.matches('form[data-attribution]')) return;
+
+      form.querySelectorAll('[data-attribution-field]').forEach(function (field) {
+        field.remove();
+      });
+
+      var current = tracker.getAll() || {};
+      ['utm_source', 'utm_medium', 'utm_campaign', 'ref'].forEach(function (key) {
+        if (!current[key]) return;
+        var field = document.createElement('input');
+        field.type = 'hidden';
+        field.name = 'attribution_' + key;
+        field.value = current[key];
+        field.setAttribute('data-attribution-field', '');
+        form.appendChild(field);
+      });
+    }, true);
+  };
+  script.onerror = function () {
+    window.__attributionTrackerLoading = false;
+  };
+  document.head.appendChild(script);
+})();
+&lt;/script&gt;
+</code></pre>
+<p>The pinned browser URL is a GitHub-backed jsDelivr URL, not an npm CDN path. The loading guard prevents a second script or form listener when both triggers fire. A later consent-granted event refreshes capture and data-layer values using the existing tracker. If the library fails to load, another consent event or page load can retry it.</p>
+<h2 id="read-selected-values-in-gtm">3. Read selected values in GTM</h2>
+<p>Create <strong>Data Layer Variable</strong> variables with <strong>Version 2</strong> and these exact names:</p>
+<table>
+<thead>
+<tr>
+<th>GTM variable name</th>
+<th>Data Layer Variable Name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DLV - attribution source</code></td>
+<td><code>attribution.utm_source</code></td>
+</tr>
+<tr>
+<td><code>DLV - attribution medium</code></td>
+<td><code>attribution.utm_medium</code></td>
+</tr>
+<tr>
+<td><code>DLV - attribution campaign</code></td>
+<td><code>attribution.utm_campaign</code></td>
+</tr>
+<tr>
+<td><code>DLV - attribution ref</code></td>
+<td><code>attribution.ref</code></td>
+</tr>
+</tbody>
+</table>
+<p>The values become available on the <code>attribution_tracker_ready</code> custom event, not necessarily on the initial page-view event because the script loads asynchronously. Only attach these values to another tag after checking that tag's purpose, consent settings, and destination. The tracker itself makes no network request.</p>
+<p>If consent is granted only after the visitor has navigated away from the tagged landing URL, that earlier URL cannot be recovered by this browser-only recipe. Capture begins on the page where consent is granted.</p>
+<h2 id="add-fields-to-a-native-form">4. Add fields to a native form</h2>
+<p>Add <code>data-attribution</code> to the form you want to enrich:</p>
+<pre><code class="language-html">&lt;form data-attribution action=&quot;/lead&quot; method=&quot;post&quot;&gt;
+  &lt;input name=&quot;email&quot; type=&quot;email&quot; required&gt;
+  &lt;button type=&quot;submit&quot;&gt;Send&lt;/button&gt;
+&lt;/form&gt;
+</code></pre>
+<p>On a normal browser <code>submit</code> event, the tag adds up to four hidden fields: <code>attribution_utm_source</code>, <code>attribution_utm_medium</code>, <code>attribution_utm_campaign</code>, and <code>attribution_ref</code>. Remove or change that allowlist to match the data you actually need. The example deliberately omits full landing-page and referrer URLs, which can contain sensitive query data.</p>
+<p>This handoff is for native HTML form submissions. A form framework that constructs its own payload or bypasses the browser <code>submit</code> event needs its own integration. The external script must also finish loading before submission. For a non-GTM form example, see <a href="form-attribution.html">the plain HTML form</a>.</p>
+<h2 id="test-before-publishing-the-container">Test before publishing the container</h2>
+<p>Use GTM Preview and a test URL such as <code>?utm_source=newsletter&amp;utm_campaign=guide</code>:</p>
+<ol>
+<li>With consent denied, confirm that the tracker tag does not fire, no <code>attribution_tracker_ready</code> event appears, and no <code>attribution_data</code> cookie is set.</li>
+<li>Grant consent on the same page. Confirm the custom event triggers the tag once and <code>attribution_tracker_ready</code> contains the expected values.</li>
+<li>Submit a test form with <code>data-attribution</code>. Confirm the request contains the selected hidden fields exactly once.</li>
+<li>Withdraw consent. Confirm no new fields are added and the stored attribution is cleared by your CMP's revocation handler.</li>
+<li>Repeat with Global Privacy Control or Do Not Track enabled. The snippet above blocks capture even if the CMP reports consent.</li>
+</ol>
+<p>GTM's <a href="https://support.google.com/tagmanager/answer/10718549">consent settings</a>, <a href="https://support.google.com/tagmanager/answer/6107167">Custom HTML tags</a>, <a href="https://support.google.com/tagmanager/answer/7679219">custom-event triggers</a>, and <a href="https://support.google.com/tagmanager/answer/7683362">data-layer variables</a> document the controls used here. Google recommends <a href="https://support.google.com/tagmanager/answer/7679102">previewing and testing form behavior</a> before publishing.</p>
+
+<p><a href="guides.html">Back to all guides</a></p>
+</article>
+</main>
+</body>
+</html>

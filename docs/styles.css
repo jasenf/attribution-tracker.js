@@ -94,6 +94,10 @@ nav a[aria-current="page"] { color: var(--accent); }
 .guide code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
 .guide p code { color: var(--text); }
 .guide pre { margin-top: 16px; }
+.rendered-guide h2 { margin-top: 44px; }
+.rendered-guide p, .rendered-guide li { color: var(--muted); }
+.rendered-guide table { display: block; overflow-x: auto; border-collapse: collapse; margin-top: 20px; }
+.rendered-guide th, .rendered-guide td { padding: 10px; border: 1px solid var(--border); text-align: left; }
 
 @media (max-width: 760px) {
     header { padding-top: 60px; }

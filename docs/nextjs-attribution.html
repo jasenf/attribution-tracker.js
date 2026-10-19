@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Capture attribution in a Next.js Client Component and pass selected campaign values to a Server Action with a consent-aware form.">
+<link rel="canonical" href="https://jasenf.github.io/attribution-tracker.js/nextjs-attribution.html">
+<title>First-touch attribution with Next.js App Router | Attribution Tracker</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="guide">
+<nav aria-label="Site navigation"><a href="./">Demo</a><a href="guides.html">Guides</a><a href="https://github.com/jasenf/attribution-tracker.js">GitHub</a><a href="https://www.npmjs.com/package/@feech/attribution-tracker">npm</a></nav>
+<article class="rendered-guide">
+<header><p class="eyebrow"><a href="guides.html">Guides</a></p><h1>First-touch attribution with Next.js App Router</h1><p class="byline">Attribution Tracker project guide. Adapted with AI assistance from the project's integration example and reviewed against the linked platform documentation. Verify your own consent-manager and form configuration before deployment.</p></header>
+<p>To run the complete example, download or clone the <a href="https://github.com/jasenf/attribution-tracker.js/tree/main/examples/nextjs-app-router">example source folder</a>, change into <code>examples/nextjs-app-router</code>, and run the commands below. In an existing Next.js app, install <code>@feech/attribution-tracker</code> and adapt the component and action shown on this page. The Server Action is a demonstration of receiving data, not production email validation or a CRM write.</p>
+
+<p>This example captures selected first-touch values in a Client Component and sends them to a Server Action as hidden form fields. It targets Next.js 16.3.6 and React 19.3.0.</p>
+<pre><code class="language-bash">npm install
+npm run dev
+</code></pre>
+<p>Open <code>http://localhost:3000/?utm_source=newsletter&amp;utm_campaign=launch</code>, grant the demo consent, and submit the form. The result shows the attribution fields received by the Server Action.</p>
+<p>The consent buttons are a test control, not a consent manager. In a real application, replace the local <code>consent</code> state with your consent management platform's current decision and change callback. Decide whether the tracker belongs under your analytics, marketing, or another storage category based on your own use and policy.</p>
+<p>The tracker runs inside <code>app/lead-form.js</code> because it needs browser APIs. Next.js pages and layouts are Server Components by default. The Server Action allowlists four attribution values and trims their length before returning them. Replace the example return value with your validated CRM or database write.</p>
+<p>The example checks Global Privacy Control and Do Not Track even after its demo consent is granted. It also clears the stored first touch when consent is withdrawn. It intentionally does not send the full landing page or referrer, since URLs can contain sensitive query data.</p>
+<p>References: <a href="https://nextjs.org/docs/app/getting-started/server-and-client-components">Next.js Client Components</a>, <a href="https://nextjs.org/docs/app/guides/forms">Next.js forms and Server Actions</a>, and <a href="https://react.dev/reference/react/useActionState">React <code>useActionState</code></a>.</p>
+<h2 id="applead-form.js">app/lead-form.js</h2>
+<pre><code class="language-jsx">'use client';
+
+import { useActionState, useEffect, useRef, useState } from 'react';
+import AttributionTracker from '@feech/attribution-tracker';
+import { submitLead } from './actions';
+
+const initialResult = { message: '', attribution: {} };
+const allowedFields = ['utm_source', 'utm_medium', 'utm_campaign', 'ref'];
+
+function privacySignalBlocksStorage() {
+  return navigator.globalPrivacyControl === true || navigator.doNotTrack === '1';
+}
+
+function selectAttribution(data) {
+  return Object.fromEntries(
+    allowedFields
+      .filter((key) =&gt; data?.[key])
+      .map((key) =&gt; [key, data[key]])
+  );
+}
+
+export default function LeadForm() {
+  const [result, formAction, pending] = useActionState(submitLead, initialResult);
+  const [consent, setConsent] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const [attribution, setAttribution] = useState({});
+  const trackerRef = useRef(null);
+
+  useEffect(() =&gt; {
+    const privacyBlocked = privacySignalBlocksStorage();
+    setBlocked(privacyBlocked);
+
+    if (!consent || privacyBlocked) return;
+
+    const tracker = new AttributionTracker({
+      consent: () =&gt; consent &amp;&amp; !privacySignalBlocksStorage()
+    });
+
+    trackerRef.current = tracker;
+    setAttribution(selectAttribution(tracker.getAll()));
+  }, [consent]);
+
+  function withdrawConsent() {
+    trackerRef.current?.clear();
+    trackerRef.current = null;
+    setAttribution({});
+    setConsent(false);
+  }
+
+  return (
+    &lt;section&gt;
+      &lt;div className=&quot;consent-row&quot;&gt;
+        &lt;button
+          type=&quot;button&quot;
+          onClick={() =&gt; setConsent(true)}
+          disabled={consent || blocked}
+        &gt;
+          Grant demo consent
+        &lt;/button&gt;
+        &lt;button type=&quot;button&quot; onClick={withdrawConsent} disabled={!consent}&gt;
+          Withdraw consent and clear
+        &lt;/button&gt;
+      &lt;/div&gt;
+
+      &lt;p className=&quot;status&quot; aria-live=&quot;polite&quot;&gt;
+        {blocked
+          ? 'A browser privacy signal blocks attribution storage.'
+          : consent
+            ? `Stored fields: ${Object.keys(attribution).join(', ') || 'none on this URL'}`
+            : 'Attribution storage is off until consent is granted.'}
+      &lt;/p&gt;
+
+      &lt;form action={formAction}&gt;
+        &lt;label htmlFor=&quot;email&quot;&gt;Email&lt;/label&gt;
+        &lt;input id=&quot;email&quot; name=&quot;email&quot; type=&quot;email&quot; defaultValue=&quot;reader@example.com&quot; required /&gt;
+
+        {Object.entries(attribution).map(([key, value]) =&gt; (
+          &lt;input key={key} type=&quot;hidden&quot; name={`attribution_${key}`} value={value} /&gt;
+        ))}
+
+        &lt;button type=&quot;submit&quot; disabled={pending}&gt;
+          {pending ? 'Sending…' : 'Send test lead'}
+        &lt;/button&gt;
+      &lt;/form&gt;
+
+      {result.message &amp;&amp; (
+        &lt;div className=&quot;result&quot; aria-live=&quot;polite&quot;&gt;
+          &lt;p&gt;{result.message}&lt;/p&gt;
+          &lt;pre&gt;{JSON.stringify(result.attribution, null, 2)}&lt;/pre&gt;
+        &lt;/div&gt;
+      )}
+    &lt;/section&gt;
+  );
+}
+
+</code></pre>
+<h2 id="appactions.js">app/actions.js</h2>
+<pre><code class="language-jsx">'use server';
+
+const attributionFields = [
+  'attribution_utm_source',
+  'attribution_utm_medium',
+  'attribution_utm_campaign',
+  'attribution_ref'
+];
+
+export async function submitLead(previousState, formData) {
+  const email = String(formData.get('email') || '').trim();
+  const attribution = {};
+
+  for (const name of attributionFields) {
+    const value = formData.get(name);
+    if (typeof value === 'string' &amp;&amp; value) {
+      attribution[name.replace('attribution_', '')] = value.slice(0, 500);
+    }
+  }
+
+  // Replace this return value with a validated write to your CRM or database.
+  return {
+    message: email ? `Received a test lead for ${email}.` : 'Email is required.',
+    attribution
+  };
+}
+
+</code></pre>
+<h2 id="apppage.js">app/page.js</h2>
+<pre><code class="language-jsx">import LeadForm from './lead-form';
+
+export default function Page() {
+  return (
+    &lt;main&gt;
+      &lt;h1&gt;Next.js first-touch attribution&lt;/h1&gt;
+      &lt;p&gt;
+        Add UTM parameters to this page, grant the demo consent, and submit the form.
+        The selected attribution values go to a Server Action with the lead.
+      &lt;/p&gt;
+      &lt;LeadForm /&gt;
+    &lt;/main&gt;
+  );
+}
+
+</code></pre>
+<h2 id="applayout.js">app/layout.js</h2>
+<pre><code class="language-jsx">import './globals.css';
+
+export const metadata = {
+  title: 'Next.js attribution form example',
+  description: 'Pass consented first-touch attribution into a Next.js Server Action.'
+};
+
+export default function RootLayout({ children }) {
+  return (
+    &lt;html lang=&quot;en&quot;&gt;
+      &lt;body&gt;{children}&lt;/body&gt;
+    &lt;/html&gt;
+  );
+}
+
+</code></pre>
+
+<p><a href="guides.html">Back to all guides</a></p>
+</article>
+</main>
+</body>
+</html>

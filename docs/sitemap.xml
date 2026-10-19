@@ -2,6 +2,8 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://jasenf.github.io/attribution-tracker.js/</loc></url>
   <url><loc>https://jasenf.github.io/attribution-tracker.js/guides.html</loc></url>
+  <url><loc>https://jasenf.github.io/attribution-tracker.js/nextjs-attribution.html</loc></url>
+  <url><loc>https://jasenf.github.io/attribution-tracker.js/google-tag-manager.html</loc></url>
   <url><loc>https://jasenf.github.io/attribution-tracker.js/wordpress-attribution.html</loc></url>
   <url><loc>https://jasenf.github.io/attribution-tracker.js/jekyll-attribution.html</loc></url>
   <url><loc>https://jasenf.github.io/attribution-tracker.js/squarespace-attribution.html</loc></url>
