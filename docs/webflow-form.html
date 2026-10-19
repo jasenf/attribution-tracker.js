@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Add consent-aware first-touch UTM values to an existing Webflow form without replacing Webflow's form submission code.">
+    <link rel="canonical" href="https://jasenf.github.io/attribution-tracker.js/webflow-form.html">
+    <title>Add first-touch UTM values to a Webflow form | Attribution Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="guide">
+        <nav aria-label="Site navigation">
+            <a href="./">Demo</a>
+            <a href="form-attribution.html">Form guide</a>
+            <a href="privacy-signals.html">Privacy guide</a>
+            <a href="https://github.com/jasenf/attribution-tracker.js">GitHub</a>
+            <a href="https://www.npmjs.com/package/@feech/attribution-tracker">npm</a>
+        </nav>
+
+        <article>
+            <header>
+                <p class="eyebrow">Webflow guide</p>
+                <h1>Add first-touch UTM values to a Webflow form</h1>
+                <p class="lede">A visitor may arrive through a campaign, return directly, and submit a Webflow form later. This setup keeps an allowed set of first-touch values in the browser and copies them into fields that Webflow can submit with the form.</p>
+                <p class="byline">Project guide for Attribution Tracker 0.1.1. Prepared with AI assistance and checked against the library source and current Webflow documentation. Test the finished form on your own Webflow staging site before using it in production.</p>
+            </header>
+
+            <section>
+                <h2>Add four fields to the Webflow form</h2>
+                <p>In the Webflow Designer, add a Div block inside the Form wrapper. Add four text inputs inside that div and give them these names:</p>
+                <ul>
+                    <li><code>attribution_utm_source</code></li>
+                    <li><code>attribution_utm_medium</code></li>
+                    <li><code>attribution_utm_campaign</code></li>
+                    <li><code>attribution_ref</code></li>
+                </ul>
+                <p>Set the div to <code>display: none</code>. Do not make the inputs required. Webflow documents this same basic hidden-field construction for its honeypot technique: ordinary inputs stay inside the Form wrapper while a containing div hides them.</p>
+                <p>This guide deliberately omits the full landing-page URL, referrer URL, and advertising click IDs. Those values can contain identifiers or sensitive query data. Expand the allowlist only when the receiving workflow has a defined need and the visitor has made the required consent choice.</p>
+            </section>
+
+            <section>
+                <h2>Populate the fields without replacing Webflow's submit handler</h2>
+                <p>Open the page settings and paste the following into the custom code area before <code>&lt;/body&gt;</code>. Replace <code>window.cookieConsent</code> with the current decision from your consent manager, and call <code>syncAttributionFields()</code> from that manager's change callback.</p>
+                <pre><code>&lt;script src="https://cdn.jsdelivr.net/gh/jasenf/attribution-tracker.js@v0.1.1/dist/attribution-tracker.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  const hasAttributionConsent = () =&gt;
+    window.cookieConsent === true &amp;&amp;
+    navigator.globalPrivacyControl !== true &amp;&amp;
+    navigator.doNotTrack !== '1';
+
+  const fieldMap = {
+    utm_source: 'attribution_utm_source',
+    utm_medium: 'attribution_utm_medium',
+    utm_campaign: 'attribution_utm_campaign',
+    ref: 'attribution_ref'
+  };
+
+  let tracker;
+
+  function setAttributionFields(data = {}) {
+    for (const [key, fieldName] of Object.entries(fieldMap)) {
+      const field = document.querySelector(`[name="${fieldName}"]`);
+      if (field) field.value = data[key] || '';
+    }
+  }
+
+  function syncAttributionFields() {
+    if (!hasAttributionConsent()) {
+      tracker?.clear();
+      tracker = undefined;
+      setAttributionFields();
+      return;
+    }
+
+    tracker = new AttributionTracker({
+      consent: hasAttributionConsent
+    });
+    setAttributionFields(tracker.getAll() || {});
+  }
+
+  syncAttributionFields();
+  // Connect your consent manager's change callback to syncAttributionFields().
+&lt;/script&gt;</code></pre>
+                <p>The code updates existing inputs when the page loads or the consent decision changes. It does not bind to the form's submit event, replace Webflow's form action, or send a separate network request.</p>
+            </section>
+
+            <section>
+                <h2>Publish and verify the complete path</h2>
+                <p>Webflow's page-level custom code does not run on the public site until you publish. Publish to your <code>webflow.io</code> staging domain first, then test these cases:</p>
+                <ol>
+                    <li>Open the page with <code>?utm_source=newsletter&amp;utm_campaign=launch</code> and grant the consent used by your callback.</li>
+                    <li>Return to the same site without those parameters and submit the form.</li>
+                    <li>Check the saved submission in Webflow and confirm the expected attribution fields appear once with the original values.</li>
+                    <li>Withdraw consent, run the consent-manager callback, and confirm the fields are blank and the library's browser storage is cleared.</li>
+                    <li>Repeat with GPC or DNT enabled if your site promises to honor those signals for this use.</li>
+                </ol>
+                <p>If the fields do not appear, confirm that they are inside the Form wrapper, have the exact names shown above, and were present when the page loaded. If the form sends to a third-party destination instead of Webflow, verify that destination's field-mapping rules separately.</p>
+            </section>
+
+            <section>
+                <h2>Know what this setup does not do</h2>
+                <p>Attribution Tracker stores the first touch in the current browser only. It cannot reconnect activity across devices, recover a campaign visit that happened before consent, or remove a value from a Webflow submission that was already sent.</p>
+                <p>For the platform steps behind this recipe, see Webflow's guides to <a href="https://help.webflow.com/hc/en-us/articles/33961347548563-How-do-I-add-forms-in-Webflow">adding and configuring forms</a>, <a href="https://help.webflow.com/hc/en-us/articles/45025662151827-Use-the-honeypot-technique-to-filter-spam-form-submissions">creating hidden form fields</a>, <a href="https://help.webflow.com/hc/en-us/articles/33961357265299">adding page-level custom code</a>, and <a href="https://help.webflow.com/hc/en-us/articles/33961344521235">reviewing form submissions</a>. The general <a href="form-attribution.html">HTML form guide</a> explains the same first-touch handoff without Webflow.</p>
+            </section>
+        </article>
+    </main>
+</body>
+</html>
