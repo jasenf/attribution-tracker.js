@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Use Squarespace code injection to capture first-touch campaign values after consent, with clear limits for native form integrations.">
+    <link rel="canonical" href="https://jasenf.github.io/attribution-tracker.js/squarespace-attribution.html">
+    <title>Capture first-touch campaign values on Squarespace | Attribution Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="guide">
+<nav aria-label="Site navigation"><a href="./">Demo</a><a href="guides.html">Guides</a><a href="https://github.com/jasenf/attribution-tracker.js">GitHub</a><a href="https://www.npmjs.com/package/@feech/attribution-tracker">npm</a></nav>
+<article>
+<header><p class="eyebrow"><a href="guides.html">Guides</a> / Squarespace</p><h1>Capture first-touch campaign values on Squarespace</h1><p class="lede">A Squarespace site can load Attribution Tracker through code injection when its plan supports that feature. Start by verifying browser capture; connecting the values to a form is a separate integration step.</p><p class="byline">Attribution Tracker project guide for version 0.1.1. Prepared with AI assistance and checked against the linked platform documentation. These are implementation recipes, not reports of an end-to-end test in a customer account.</p></header>
+<section><h2>Use site-wide footer code injection</h2><p>Code Injection is available on Core, Plus, Advanced, and some legacy plans. It is not supported on checkout pages. In the site's Code Injection settings, add the following script tags to the footer and save. Keep the library before your initializer:</p>
+<pre><code>&lt;script src="https://cdn.jsdelivr.net/gh/jasenf/attribution-tracker.js@v0.1.1/dist/attribution-tracker.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+// Paste the initializer below here.
+&lt;/script&gt;</code></pre>
+<p>Install it across the campaign landing pages, not just the contact page. Otherwise a visitor who arrives on another page may lose the campaign parameters before capture. Custom code is outside Squarespace's normal support scope; use a test site or an unpublished copy before changing the live setup.</p></section>
+<section><h2>Connect your consent decision</h2><p>The initializer below assumes your consent manager updates <code>window.cookieConsent</code>. That variable is a placeholder contract, not a built-in Squarespace API. Replace it with the site's real consent decision and wire the manager's change callback. Without an affirmative decision, capture stays off.</p><pre><code>const hasAttributionConsent = () =&gt;
+  window.cookieConsent === true &amp;&amp;
+  navigator.globalPrivacyControl !== true &amp;&amp;
+  navigator.doNotTrack !== '1';
+
+let tracker;
+function syncAttributionConsent() {
+  if (!hasAttributionConsent()) {
+    tracker?.clear();
+    tracker = undefined;
+    return;
+  }
+  tracker = new AttributionTracker({
+    consent: hasAttributionConsent
+  });
+}
+syncAttributionConsent();
+// Call syncAttributionConsent() when your consent manager changes.
+// Read tracker?.getAll() only while hasAttributionConsent() is true.</code></pre><p>Download the browser build from the <a href="https://cdn.jsdelivr.net/gh/jasenf/attribution-tracker.js@v0.1.1/dist/attribution-tracker.js">versioned distribution</a>. The <a href="privacy-signals.html">privacy guide</a> explains callback precedence and clearing stored values. Clearing browser storage cannot retract data already submitted elsewhere.</p></section>
+<section><h2>Keep form handling explicit</h2><p>This recipe captures values in the page's browser context. It does not add fields to a Squarespace Form Block or guarantee that an injected input will reach a built-in storage integration.</p><p>For an HTML form that you control, use the <a href="form-attribution.html">native form example</a> with a form endpoint that accepts the named fields. For a Squarespace Form Block, establish a supported field mapping and verify the saved submission before relying on it. Avoid selectors based on generated field IDs.</p><p>Check capture on the published site, after navigation as well as a full reload. If your site configuration navigates without reloading the document, do not assume footer code runs again on each page change.</p></section>
+<section><h2>Verify before using the result</h2><ol><li>Visit a landing page with <code>?utm_source=newsletter&amp;utm_campaign=launch</code>, grant the configured consent, and check the stored values.</li><li>Return without campaign parameters in the same browser. The original values should remain while storage is available.</li><li>Withdraw consent and confirm the change callback clears stored attribution and prevents the form handoff.</li><li>If you add a form integration, inspect both the outgoing request and the saved submission. Send only the fields the destination needs.</li></ol><p>The library cannot connect devices, restore cleared storage, or recover a campaign visit that ended before consent. Start with UTMs and the referral label; full URLs and click IDs can carry identifiers.</p><p>Platform references: <a href="https://support.squarespace.com/hc/en-us/articles/205815908-Customize-parts-of-your-site-with-code-injection">Squarespace code injection</a>.</p></section>
+</article>
+</main>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Load Attribution Tracker through a Jekyll include, preserve subdirectory asset paths, and attach campaign values to a static site's form.">
+    <link rel="canonical" href="https://jasenf.github.io/attribution-tracker.js/jekyll-attribution.html">
+    <title>Keep first-touch attribution on Jekyll and GitHub Pages | Attribution Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="guide">
+<nav aria-label="Site navigation"><a href="./">Demo</a><a href="guides.html">Guides</a><a href="https://github.com/jasenf/attribution-tracker.js">GitHub</a><a href="https://www.npmjs.com/package/@feech/attribution-tracker">npm</a></nav>
+<article>
+<header><p class="eyebrow"><a href="guides.html">Guides</a> / Jekyll and GitHub Pages</p><h1>Keep first-touch attribution on Jekyll and GitHub Pages</h1><p class="lede">Jekyll generates the page, and Attribution Tracker runs in the visitor's browser. You can keep first-touch campaign values on a static site without adding a tracking server.</p><p class="byline">Attribution Tracker project guide for version 0.1.1. Prepared with AI assistance and checked against the linked platform documentation. These are implementation recipes, not reports of an end-to-end test in a customer account.</p></header>
+<section><h2>Add a shared include</h2><p>Download the versioned browser build into <code>assets/js/attribution-tracker.js</code>. Save the initializer below as <code>assets/js/attribution-init.js</code>. Create <code>_includes/attribution.html</code>:</p>
+<pre><code>&lt;script src="{{ '/assets/js/attribution-tracker.js' | relative_url }}"&gt;&lt;/script&gt;
+&lt;script src="{{ '/assets/js/attribution-init.js' | relative_url }}"&gt;&lt;/script&gt;</code></pre>
+<p>Add <code>{% include attribution.html %}</code> before the closing body tag of the layout shared by your landing pages. The <code>relative_url</code> filter uses your configured <code>baseurl</code>, which matters for a GitHub Pages project hosted under a repository path.</p><p>If your layout comes from a theme gem, use the theme's documented include hook or override its layout locally. Preserve the layout's existing content, styles, and includes.</p></section>
+<section><h2>Connect your consent decision</h2><p>The initializer below assumes your consent manager updates <code>window.cookieConsent</code>. That variable is a placeholder contract, not a built-in Jekyll and GitHub Pages API. Replace it with the site's real consent decision and wire the manager's change callback. Without an affirmative decision, capture stays off.</p><pre><code>const hasAttributionConsent = () =&gt;
+  window.cookieConsent === true &amp;&amp;
+  navigator.globalPrivacyControl !== true &amp;&amp;
+  navigator.doNotTrack !== '1';
+
+let tracker;
+function syncAttributionConsent() {
+  if (!hasAttributionConsent()) {
+    tracker?.clear();
+    tracker = undefined;
+    return;
+  }
+  tracker = new AttributionTracker({
+    consent: hasAttributionConsent
+  });
+}
+syncAttributionConsent();
+// Call syncAttributionConsent() when your consent manager changes.
+// Read tracker?.getAll() only while hasAttributionConsent() is true.</code></pre><p>Download the browser build from the <a href="https://cdn.jsdelivr.net/gh/jasenf/attribution-tracker.js@v0.1.1/dist/attribution-tracker.js">versioned distribution</a>. The <a href="privacy-signals.html">privacy guide</a> explains callback precedence and clearing stored values. Clearing browser storage cannot retract data already submitted elsewhere.</p></section>
+<section><h2>Choose a form destination</h2><p>GitHub Pages hosts static files; it does not process a POST request for you. Keep your existing form service or backend, and use the <a href="form-attribution.html">HTML form handoff</a> to add selected values. A provider that rejects unknown fields will need its field definitions updated first.</p><p>Build with <code>bundle exec jekyll build</code>, then inspect the generated page under <code>_site</code>. Both script URLs must resolve under the deployed project path. Avoid adding a second copy of the include in a nested layout.</p></section>
+<section><h2>Verify before using the result</h2><ol><li>Visit a landing page with <code>?utm_source=newsletter&amp;utm_campaign=launch</code>, grant the configured consent, and check the stored values.</li><li>Return without campaign parameters in the same browser. The original values should remain while storage is available.</li><li>Withdraw consent and confirm the change callback clears stored attribution and prevents the form handoff.</li><li>If you add a form integration, inspect both the outgoing request and the saved submission. Send only the fields the destination needs.</li></ol><p>The library cannot connect devices, restore cleared storage, or recover a campaign visit that ended before consent. Start with UTMs and the referral label; full URLs and click IDs can carry identifiers.</p><p>Platform references: <a href="https://jekyllrb.com/docs/includes/">Jekyll includes</a>, <a href="https://jekyllrb.com/docs/liquid/filters/">Jekyll filters</a>, <a href="https://jekyllrb.com/docs/themes/">Theme overrides</a>, <a href="https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages">GitHub Pages hosting</a>.</p></section>
+</article>
+</main>
+</body>
+</html>

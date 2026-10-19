@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Install Attribution Tracker on WordPress, connect consent, and pass selected campaign values to a compatible form.">
+    <link rel="canonical" href="https://jasenf.github.io/attribution-tracker.js/wordpress-attribution.html">
+    <title>Add first-touch attribution to WordPress | Attribution Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="guide">
+<nav aria-label="Site navigation"><a href="./">Demo</a><a href="guides.html">Guides</a><a href="https://github.com/jasenf/attribution-tracker.js">GitHub</a><a href="https://www.npmjs.com/package/@feech/attribution-tracker">npm</a></nav>
+<article>
+<header><p class="eyebrow"><a href="guides.html">Guides</a> / WordPress</p><h1>Add first-touch attribution to WordPress</h1><p class="lede">Keep the campaign that first brought a visitor to a WordPress site, then make those values available when they return. This recipe is for self-hosted WordPress sites where you can deploy theme or plugin code.</p><p class="byline">Attribution Tracker project guide for version 0.1.1. Prepared with AI assistance and checked against the linked platform documentation. These are implementation recipes, not reports of an end-to-end test in a customer account.</p></header>
+<section><h2>Load the library through WordPress</h2><p>Put a copy of the versioned browser build in your child theme at <code>assets/js/attribution-tracker.js</code>. Create <code>assets/js/attribution-init.js</code> with the initialization code below. Add this PHP to your child theme's <code>functions.php</code>, inside its existing PHP block:</p>
+<pre><code>add_action('wp_enqueue_scripts', function () {
+    wp_enqueue_script(
+        'first-touch-tracker',
+        get_stylesheet_directory_uri() . '/assets/js/attribution-tracker.js',
+        array(), '0.1.1', true
+    );
+    wp_enqueue_script(
+        'first-touch-init',
+        get_stylesheet_directory_uri() . '/assets/js/attribution-init.js',
+        array('first-touch-tracker'), '1.0.0', true
+    );
+});</code></pre><p>The dependency makes WordPress load the library before the initializer. Use a child theme or a small site plugin so a parent-theme update does not overwrite your integration. Check that your theme calls <code>wp_footer()</code>.</p></section>
+<section><h2>Connect your consent decision</h2><p>The initializer below assumes your consent manager updates <code>window.cookieConsent</code>. That variable is a placeholder contract, not a built-in WordPress API. Replace it with the site's real consent decision and wire the manager's change callback. Without an affirmative decision, capture stays off.</p><pre><code>const hasAttributionConsent = () =&gt;
+  window.cookieConsent === true &amp;&amp;
+  navigator.globalPrivacyControl !== true &amp;&amp;
+  navigator.doNotTrack !== '1';
+
+let tracker;
+function syncAttributionConsent() {
+  if (!hasAttributionConsent()) {
+    tracker?.clear();
+    tracker = undefined;
+    return;
+  }
+  tracker = new AttributionTracker({
+    consent: hasAttributionConsent
+  });
+}
+syncAttributionConsent();
+// Call syncAttributionConsent() when your consent manager changes.
+// Read tracker?.getAll() only while hasAttributionConsent() is true.</code></pre><p>Download the browser build from the <a href="https://cdn.jsdelivr.net/gh/jasenf/attribution-tracker.js@v0.1.1/dist/attribution-tracker.js">versioned distribution</a>. The <a href="privacy-signals.html">privacy guide</a> explains callback precedence and clearing stored values. Clearing browser storage cannot retract data already submitted elsewhere.</p></section>
+<section><h2>Connect the form you actually use</h2><p>For a native HTML form that you own, use the <a href="form-attribution.html">four-field form handoff</a>. For a form plugin, create its supported hidden fields and populate them through the plugin's documented frontend API before it builds the request. AJAX forms may serialize their fields before a native submit listener runs.</p><p>This is not a universal Contact Form 7, WPForms, or Gravity Forms adapter. Confirm the values in your plugin's saved submission. WordPress.com and managed hosts can impose separate custom-code restrictions. Pasting scripts into a Custom HTML block may strip them when the user lacks <code>unfiltered_html</code>.</p></section>
+<section><h2>Verify before using the result</h2><ol><li>Visit a landing page with <code>?utm_source=newsletter&amp;utm_campaign=launch</code>, grant the configured consent, and check the stored values.</li><li>Return without campaign parameters in the same browser. The original values should remain while storage is available.</li><li>Withdraw consent and confirm the change callback clears stored attribution and prevents the form handoff.</li><li>If you add a form integration, inspect both the outgoing request and the saved submission. Send only the fields the destination needs.</li></ol><p>The library cannot connect devices, restore cleared storage, or recover a campaign visit that ended before consent. Start with UTMs and the referral label; full URLs and click IDs can carry identifiers.</p><p>Platform references: <a href="https://developer.wordpress.org/reference/functions/wp_enqueue_script/">WordPress script loading</a>, <a href="https://developer.wordpress.org/themes/advanced-topics/child-themes/">Child themes</a>, <a href="https://wordpress.org/documentation/article/custom-html/">Custom HTML permissions</a>.</p></section>
+</article>
+</main>
+</body>
+</html>

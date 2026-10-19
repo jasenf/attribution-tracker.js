@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Install Attribution Tracker with Wix dashboard Custom Code, distinguish it from iframe embeds, and plan the form handoff.">
+    <link rel="canonical" href="https://jasenf.github.io/attribution-tracker.js/wix-attribution.html">
+    <title>Capture first-touch campaign values on Wix | Attribution Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="guide">
+<nav aria-label="Site navigation"><a href="./">Demo</a><a href="guides.html">Guides</a><a href="https://github.com/jasenf/attribution-tracker.js">GitHub</a><a href="https://www.npmjs.com/package/@feech/attribution-tracker">npm</a></nav>
+<article>
+<header><p class="eyebrow"><a href="guides.html">Guides</a> / Wix</p><h1>Capture first-touch campaign values on Wix</h1><p class="lede">Use Wix dashboard Custom Code to run Attribution Tracker in the site's page context. An HTML embed widget is a different environment and should not be used as a shortcut for capturing the parent page's landing URL.</p><p class="byline">Attribution Tracker project guide for version 0.1.1. Prepared with AI assistance and checked against the linked platform documentation. These are implementation recipes, not reports of an end-to-end test in a customer account.</p></header>
+<section><h2>Add dashboard Custom Code</h2><p>Your Wix site must be published with a connected domain. In Settings, open Custom Code, add a snippet for all relevant landing pages, select load once per visit, and place it at the body end. Load the library before the initializer:</p>
+<pre><code>&lt;script src="https://cdn.jsdelivr.net/gh/jasenf/attribution-tracker.js@v0.1.1/dist/attribution-tracker.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+// Paste the initializer below here.
+&lt;/script&gt;</code></pre>
+<p>Use the category appropriate to your site's attribution use. Wix's Essential category can load before consent; choosing a category alone is not the same as connecting the initializer's consent decision. Do not set attribution to Essential just to make it run earlier.</p><p>Wix's Embed HTML element uses an iframe. Code inside it has its own page context, so it can see the embed's URL instead of the site's campaign landing URL. Use dashboard Custom Code for this capture recipe.</p><p>Wix also enforces <a href="https://dev.wix.com/docs/develop-websites-sdk/code-your-site/best-practices/about-frontend-security">frontend security restrictions</a>, including protection of internal cookies. Verify that the library's own attribution cookie can be written and read on your published domain. Do not attempt to read Wix security cookies or bypass its protections.</p></section>
+<section><h2>Connect your consent decision</h2><p>The initializer below assumes your consent manager updates <code>window.cookieConsent</code>. That variable is a placeholder contract, not a built-in Wix API. Replace it with the site's real consent decision and wire the manager's change callback. Without an affirmative decision, capture stays off.</p><pre><code>const hasAttributionConsent = () =&gt;
+  window.cookieConsent === true &amp;&amp;
+  navigator.globalPrivacyControl !== true &amp;&amp;
+  navigator.doNotTrack !== '1';
+
+let tracker;
+function syncAttributionConsent() {
+  if (!hasAttributionConsent()) {
+    tracker?.clear();
+    tracker = undefined;
+    return;
+  }
+  tracker = new AttributionTracker({
+    consent: hasAttributionConsent
+  });
+}
+syncAttributionConsent();
+// Call syncAttributionConsent() when your consent manager changes.
+// Read tracker?.getAll() only while hasAttributionConsent() is true.</code></pre><p>Download the browser build from the <a href="https://cdn.jsdelivr.net/gh/jasenf/attribution-tracker.js@v0.1.1/dist/attribution-tracker.js">versioned distribution</a>. The <a href="privacy-signals.html">privacy guide</a> explains callback precedence and clearing stored values. Clearing browser storage cannot retract data already submitted elsewhere.</p></section>
+<section><h2>Plan a supported handoff to Wix Forms</h2><p>Capturing values does not automatically attach them to Wix Forms, Wix CRM, or a Velo submission. Those need a supported field API and a tested bridge between your custom code and the form's own runtime. Do not assume a global variable from dashboard code is available in Velo.</p><p>If you own a separate HTML form in the same page context, the <a href="form-attribution.html">HTML form guide</a> explains its payload. For native Wix Forms, verify the form API for your editor and form version before building an adapter.</p></section>
+<section><h2>Verify before using the result</h2><ol><li>Visit a landing page with <code>?utm_source=newsletter&amp;utm_campaign=launch</code>, grant the configured consent, and check the stored values.</li><li>Return without campaign parameters in the same browser. The original values should remain while storage is available.</li><li>Withdraw consent and confirm the change callback clears stored attribution and prevents the form handoff.</li><li>If you add a form integration, inspect both the outgoing request and the saved submission. Send only the fields the destination needs.</li></ol><p>The library cannot connect devices, restore cleared storage, or recover a campaign visit that ended before consent. Start with UTMs and the referral label; full URLs and click IDs can carry identifiers.</p><p>Platform references: <a href="https://support.wix.com/en/article/wix-editor-embedding-custom-code-on-your-site">Wix dashboard custom code</a>, <a href="https://support.wix.com/en/article/categorizing-your-custom-code">Wix code categories</a>, <a href="https://support.wix.com/en/article/wix-editor-embedding-a-site-or-a-widget">Wix iframe embeds</a>.</p></section>
+</article>
+</main>
+</body>
+</html>
