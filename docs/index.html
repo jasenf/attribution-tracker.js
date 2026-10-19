@@ -3,13 +3,19 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Try Attribution Tracker with UTM parameters, referral values, and ad click IDs in your browser.">
-    <title>Attribution Tracker demo</title>
+    <meta name="description" content="A simple, dependency-free JavaScript tracker for first-touch UTMs, click IDs, and referrers. Try the browser demo and follow the integration guides.">
+    <meta name="google-site-verification" content="_J0Uqdxx2GaLnleT9duNcYviYWV5XtYTqXDoWq_4I74">
+    <link rel="canonical" href="https://jasenf.github.io/attribution-tracker.js/">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Attribution Tracker | Simple first-touch JavaScript tracking">
+    <meta property="og:description" content="Save first-touch UTMs, click IDs, and referrers in the browser after consent. Try the demo and integration guides.">
+    <meta property="og:url" content="https://jasenf.github.io/attribution-tracker.js/">
+    <title>Attribution Tracker | Simple first-touch JavaScript tracking</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <main>
-        <nav>
+        <nav aria-label="Site navigation">
             <a href="form-attribution.html">Form guide</a>
             <a href="webflow-form.html">Webflow guide</a>
             <a href="privacy-signals.html">Privacy guide</a>
@@ -19,7 +25,7 @@
 
         <header>
             <p class="eyebrow">Attribution Tracker</p>
-            <h1>See the first touch your browser saved.</h1>
+            <h1>Simple first-touch attribution for JavaScript sites.</h1>
             <p class="lede">This demo captures campaign parameters, click IDs, the landing page, and the external referrer. It stores the result only in this browser session.</p>
         </header>
 
@@ -59,6 +65,7 @@
         </section>
 
         <p class="note">The demo passes explicit consent and uses <code>sessionStorage</code>. It does not send the captured values anywhere.</p>
+        <footer><a href="sitemap.xml">Sitemap</a></footer>
     </main>
     <script src="attribution-tracker.js"></script>
     <script src="demo.js"></script>
